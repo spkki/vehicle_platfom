@@ -34,8 +34,16 @@
         href="{{ url_for('maintenance_logs', vehicle_id=vehicle.id if vehicle else 1) }}"
         >Maintenance</a
       >
+      <a
+        href="{{ url_for('fuel_logs', vehicle_id=vehicle.id if vehicle else 1) }}"
+        >Fuel Logs</a
+      >
       <a href="{{ url_for('add_vehicle') }}">Add Vehicle</a>
       <a href="{{ url_for('add_service')}}">Add Service</a>
+      <a
+        href="{{ url_for('add_fuel_log', vehicle_id=vehicle.id if vehicle else 1) }}"
+        >Add Fuel Log</a
+      >
     </nav>
     <hr />
     {% block content%}{% endblock %}

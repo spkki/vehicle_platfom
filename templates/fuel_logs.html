@@ -1,0 +1,47 @@
+<!-- templates/fuel_logs.html -->
+{% extends "base.html" %} {% block content %}
+<h2>
+    Fuel Logs for {{ vehicle.make }} {{ vehicle.model }} ({{ 
+    vehicle.nickname}})
+</h2>
+<form method="GET" action="{{ url_for('fuel_logs', vehicle_id=vehicle.id) }}">
+    <label>Switch Vehicle:</label>
+    <select onchange="location = '/vehicles/' + this.value + '/fuel_logs'">
+        {% for v in all_vehicles %}
+            <option value="{{ v.id }}" {% if v.id == vehicle.id %}selected{% endif %}>
+                {{ v.make }} {{ v.model }} ({{ v.nickname }})
+            </option>
+        {% endfor %}
+    </select>
+</form>
+
+<a href="{{ url_for('add_fuel_log', vehicle_id=vehicle.id) }}"
+  >Add Fuel Entry</a
+>
+
+{% if logs %}
+<table>
+  <tr>
+    <th>Date</th>
+    <th>Odometer</th>
+    <th>Liters</th>
+    <th>Price Per Liter</th>
+    <th>Total Cost</th>
+    <th>Fuel Tank Full?</th>
+    <th>Notes</th>
+  </tr>
+  {% for log in logs %}
+  <tr>
+    <td>{{ log.date }}</td>
+    <td>{{ log.odometer }}</td>
+    <td>{{ log.liter }}</td>
+    <td>{{ log.price_per_liter }}</td>
+    <td>{{ log.total_cost }}</td>
+    <td>{{ 'Yes' if log.full_tank else 'No' }}</td>
+    <td>{{ log.notes }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p>No fuel logs found yet.</p>
+{% endif %} {% endblock %}

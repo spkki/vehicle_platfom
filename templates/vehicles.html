@@ -10,6 +10,7 @@
     <th>Year</th>
     <th>Nickname</th>
     <th>Notes</th>
+    <th>Actions</th>
   </tr>
   {% for vehicle in vehicles %}
   <tr>
@@ -19,6 +20,18 @@
     <td>{{ vehicle.year}}</td>
     <td>{{ vehicle.nickname}}</td>
     <td>{{ vehicle.notes}}</td>
+    <td>
+      <a href="{{ url_for('fuel_logs', vehicle_id=vehicle.id)}}">Fuel Logs</a>
+      <a href="{{ url_for('maintenance_logs', vehicle_id=vehicle.id)}}"
+        >Maintenance</a
+      >
+      <a href="{{ url_for('add_fuel_log', vehicle_id=vehicle.id)}}"
+        >Add Fuel Log</a
+      >
+      <a href="{{ url_for('add_service', vehicle_id=vehicle.id)}}"
+        >Add Service</a
+      >
+    </td>
   </tr>
   {% endfor %}
 </table>

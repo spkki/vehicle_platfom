@@ -1,0 +1,32 @@
+{% extends "base.html" %} {% block content %}
+<h2>Add Fuel Log for {{ vehicle.make }} {{ vehicle.model }}</h2>
+<form method="POST">
+  <label>Date:</label><br />
+  <input type="date" name="date" required /><br /><br />
+
+  <label>Odometer:</label><br />
+  <input type="number" name="odometer" required /><br /><br />
+
+  <label>Liters:</label><br />
+  <input type="number" step="0.01" name="liter" required /><br /><br />
+
+  <label>Price per liter:</label><br />
+  <input
+    type="number"
+    step="0.01"
+    name="price_per_liter"
+    required
+  /><br /><br />
+
+  <label>Total cost:</label><br />
+  <input type="number" step="0.01" name="total_cost" required /><br /><br />
+
+  <label>Fuel tank full?:</label><br />
+  <input type="checkbox" name="full_tank" value="1" /><br /><br />
+
+  <label>Notes:</label><br />
+  <textarea name="notes"></textarea> <br /><br />
+
+  <button type="submit">Add Fuel Log</button>
+</form>
+{% endblock %}

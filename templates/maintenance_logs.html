@@ -8,7 +8,7 @@
     <select onchange="location = '/vehicles/' + this.value + '/maintenance_logs'">
         {% for v in all_vehicles %}
             <option value="{{ v.id }}" {% if v.id == vehicle.id %}selected{% endif %}>
-                {{ v.make }} {{ v.model }} ({{ v.registration }})
+                {{ v.make }} {{ v.model }} ({{ v.nickname }})
             </option>
         {% endfor %}
     </select>
