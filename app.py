@@ -1,9 +1,12 @@
 #Flask application
 
-from flask import Flask, render_template, request, redirect, url_for
+import os
+from flask import Flask, flash, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
 
 app = Flask(__name__)
+app.secret_key = os.urandom(24)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 db = SQLAlchemy(app)
 
@@ -39,8 +42,7 @@ class Maintenance(db.Model):
 # Routes
 @app.route('/')
 def index():
-    return "Flask is working!"
-    #return render_template('index.html')
+    return render_template('index.html')
 
 @app.route('/vehicles')
 def vehicles():
@@ -56,12 +58,65 @@ def add_vehicle():
         nickname = request.form.get('nickname')
         notes = request.form.get('notes')
         
-        new_vehicle = Vehicle(make=make, model=model, year=year, nickname=nickname, notes=notes)
+        new_vehicle = Vehicle(
+            make=make, 
+            model=model,
+            year=year, 
+            nickname=nickname, 
+            notes=notes)
         db.session.add(new_vehicle)
         db.session.commit()
         
         return redirect(url_for('vehicles'))
     return render_template('add_vehicle.html')
+
+@app.route('/vehicles/<int:vehicle_id>/maintenance_logs')
+def maintenance_logs(vehicle_id):
+    vehicle = Vehicle.query.get_or_404(vehicle_id)
+    logs = Maintenance.query.filter_by(vehicle_id=vehicle_id).all()
+    all_vehicles = Vehicle.query.all()
+    return render_template(
+        'maintenance_logs.html', 
+        vehicle=vehicle, 
+        logs=logs,
+        all_vehicles=all_vehicles
+        )
+    
+@app.route('/add_service', methods=['GET', 'POST'])
+def add_service():
+    all_vehicles = Vehicle.query.all()
+    if request.method == 'POST':
+        vehicle_id = request.form['vehicle_id']
+        date_str = request.form.get('date')  # e.g., '2024-10-06'
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+        odometer = request.form['odometer']
+        service_type = request.form['service_type']
+        cost = request.form['cost']
+        notes = request.form.get('notes')
+        
+        new_service = Maintenance(
+            vehicle_id=int(request.form.get('vehicle_id')), 
+            date=date_obj, 
+            odometer=int(request.form.get('odometer')),
+            service_type=request.form.get('service_type'),
+            cost=float(request.form.get('cost')),
+            notes=request.form.get('notes')
+            )
+        db.session.add(new_service)
+        db.session.commit()
+        
+        return redirect(url_for('maintenance_logs', vehicle_id=vehicle_id))
+    return render_template('add_maintenance.html', vehicles=all_vehicles)
+
+@app.route('/maintenance/<int:log_id>/delete', methods=['POST'])
+def delete_maintenance(log_id):
+    log = Maintenance.query.get_or_404(log_id)
+    db.session.delete(log)
+    db.session.commit()
+    flash('Maintenance entry deleted successfully!', 'success')
+    return redirect(url_for('maintenance_logs', vehicle_id=log.vehicle_id))
+
+
 
 if __name__ == '__main__':
     with app.app_context():

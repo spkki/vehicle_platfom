@@ -1,0 +1,32 @@
+<!-- templates/add_maintenance.html -->
+{% extends "base.html" %} {% block content %}
+<h2>Add Maintenance Record</h2>
+<form method="POST">
+  <label>Vehicle:</label><br />
+  <select name="vehicle_id" required>
+    <option value="">-- Select Vehicle --</option>
+    {% for vehicle in vehicles %}
+    <option value="{{ vehicle.id }}">
+      {{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.nickname }})
+    </option>
+    {% endfor %}</select
+  ><br /><br />
+
+  <label>Date:</label><br />
+  <input type="date" name="date" required /><br /><br />
+
+  <label>Odometer:</label><br />
+  <input type="number" name="odometer" required /><br /><br />
+
+  <label>Service Type:</label><br />
+  <input type="text" name="service_type" required /><br /><br />
+
+  <label>Cost:</label><br />
+  <input type="number" step="0.01" name="cost" /><br /><br />
+
+  <label>Notes:</label><br />
+  <textarea name="notes"></textarea><br /><br />
+
+  <button type="submit">Add Service</button>
+</form>
+{% endblock %}

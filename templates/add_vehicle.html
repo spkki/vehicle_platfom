@@ -1,0 +1,22 @@
+<!-- templates/add_vehicle.html -->
+{% extends "base.html" %} {% block content %}
+<h2>Add Vehicle</h2>
+<form method="POST">
+  <label>Make:</label><br />
+  <input type="text" name="make" required /><br /><br />
+
+  <label>Model:</label><br />
+  <input type="text" name="model" required /><br /><br />
+
+  <label>Year:</label><br />
+  <input type="number" name="year" /><br /><br />
+
+  <label>Nickname:</label><br />
+  <input type="text" name="nickname" /><br /><br />
+
+  <label>Notes:</label><br />
+  <textarea name="notes"></textarea> <br /><br />
+
+  <button type="submit">Add Vehicle</button>
+</form>
+{% endblock %}

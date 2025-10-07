@@ -1,0 +1,43 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Vehicle Platform</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 80%;
+      }
+      th,
+      td {
+        border: 1px solid #ccc;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f2f2f2;
+      }
+      a {
+        margin-right: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a href="{{ url_for('index') }}">Home</a>
+      <a href="{{ url_for('vehicles') }}">Vehicles</a>
+      <a
+        href="{{ url_for('maintenance_logs', vehicle_id=vehicle.id if vehicle else 1) }}"
+        >Maintenance</a
+      >
+      <a href="{{ url_for('add_vehicle') }}">Add Vehicle</a>
+      <a href="{{ url_for('add_service')}}">Add Service</a>
+    </nav>
+    <hr />
+    {% block content%}{% endblock %}
+  </body>
+</html>
