@@ -108,7 +108,7 @@ def add_service():
         db.session.commit()
         
         return redirect(url_for('maintenance_logs', vehicle_id=vehicle_id))
-    return render_template('add_maintenance.html', vehicles=all_vehicles)
+    return render_template('add_service.html', vehicles=all_vehicles)
 
 @app.route('/maintenance/<int:log_id>/delete', methods=['POST'])
 def delete_maintenance(log_id):

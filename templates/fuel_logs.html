@@ -6,7 +6,7 @@
 </h2>
 <form method="GET" action="{{ url_for('fuel_logs', vehicle_id=vehicle.id) }}">
     <label>Switch Vehicle:</label>
-    <select onchange="location = '/vehicles/' + this.value + '/fuel_logs'">
+    <select onchange="location = '/vehicles/' + this.value + '/fuel'">
         {% for v in all_vehicles %}
             <option value="{{ v.id }}" {% if v.id == vehicle.id %}selected{% endif %}>
                 {{ v.make }} {{ v.model }} ({{ v.nickname }})
