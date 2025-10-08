@@ -129,7 +129,7 @@ def fuel_logs(vehicle_id):
 @app.route('/vehicles/<int:vehicle_id>/fuel/add', methods=['GET', 'POST'])
 def add_fuel_log(vehicle_id):
     all_vehicles = Vehicle.query.all()
-    #vehicle = Vehicle.query.get_or_404(vehicle_id)
+    vehicle = Vehicle.query.get_or_404(vehicle_id)
     if request.method == 'POST':
         date_str = request.form.get('date')  # e.g., '2024-10-06'
         date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
@@ -153,10 +153,15 @@ def add_fuel_log(vehicle_id):
         db.session.add(new_log)
         db.session.commit()
         return redirect(url_for('fuel_logs', vehicle_id=vehicle.id))
-    
     return render_template('add_fuel_log.html', vehicles=all_vehicles)
         
-
+@app.route('/vehicles/<int:log_id>/fuel/delete', methods=['POST'])
+def delete_fuel_log(log_id):
+    log = FuelLog.query.get_or_404(log_id)
+    db.session.delete(log)
+    db.session.commit()
+    flash('Fuel entry deleted successfully!', 'success')
+    return redirect(url_for('fuel_logs', vehicle_id=log.vehicle_id))
 
 if __name__ == '__main__':
     with app.app_context():

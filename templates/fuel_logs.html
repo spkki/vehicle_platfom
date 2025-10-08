@@ -1,47 +1,188 @@
 <!-- templates/fuel_logs.html -->
 {% extends "base.html" %} {% block content %}
+
 <h2>
     Fuel Logs for {{ vehicle.make }} {{ vehicle.model }} ({{ 
     vehicle.nickname}})
 </h2>
-<form method="GET" action="{{ url_for('fuel_logs', vehicle_id=vehicle.id) }}">
-    <label>Switch Vehicle:</label>
-    <select onchange="location = '/vehicles/' + this.value + '/fuel'">
-        {% for v in all_vehicles %}
-            <option value="{{ v.id }}" {% if v.id == vehicle.id %}selected{% endif %}>
-                {{ v.make }} {{ v.model }} ({{ v.nickname }})
-            </option>
-        {% endfor %}
-    </select>
-</form>
 
-<a href="{{ url_for('add_fuel_log', vehicle_id=vehicle.id) }}"
-  >Add Fuel Entry</a
->
+<div class="dashboard">
+  <!-- Vehicle Switch Card -->
+  <div class="card">
+    <h3>Switch Vehicle</h3>
+      <form method="GET" action="{{ url_for('fuel_logs', vehicle_id=vehicle.id) }}">
+          <label>Switch Vehicle:</label>
+          <select onchange="location = '/vehicles/' + this.value + '/fuel'">
+              {% for v in all_vehicles %}
+                  <option value="{{ v.id }}" {% if v.id == vehicle.id %}selected{% endif %}>
+                      {{ v.make }} {{ v.model }} ({{ v.nickname }})
+                  </option>
+              {% endfor %}
+          </select>
+      </form>
+  </div>
+
+  <!-- Add Fuel Entry card -->
+  <div class="card">
+    <h3>Add Fuel Entry</h3>
+      <a href="{{ url_for('add_fuel_log', vehicle_id=vehicle.id) }}">Add Fuel Entry</a>
+  </div>
+</div> <!-- remove if you want to have them all as cards-->
 
 {% if logs %}
-<table>
-  <tr>
-    <th>Date</th>
-    <th>Odometer</th>
-    <th>Liters</th>
-    <th>Price Per Liter</th>
-    <th>Total Cost</th>
-    <th>Fuel Tank Full?</th>
-    <th>Notes</th>
-  </tr>
-  {% for log in logs %}
-  <tr>
-    <td>{{ log.date }}</td>
-    <td>{{ log.odometer }}</td>
-    <td>{{ log.liter }}</td>
-    <td>{{ log.price_per_liter }}</td>
-    <td>{{ log.total_cost }}</td>
-    <td>{{ 'Yes' if log.full_tank else 'No' }}</td>
-    <td>{{ log.notes }}</td>
-  </tr>
+<!--<div class="spacer" style="height: 20px;"></div>-->
+<div class="dashboard"> <!-- remove if you want to have them all as cards-->
+  <!-- Summary Cards -->
+  <div class="card">
+    <h3>Total Liters Filled</h3>
+    <p>{{ logs|sum(attribute='liter') }}</p>
+  </div>
+
+  <div class="card">
+    <h3>Total Cost (DKK)</h3>
+    <p>{{ logs|sum(attribute='total_cost') }}</p>
+  </div>
+
+  <div class="card">
+    <h3>Average Fuel Efficiency</h3>
+    <p>
+      {% set efficiencies = [] %}
+      {% for i in range(1, logs|length) %}
+        {% if logs[i].liter %}
+          {% set _ = efficiencies.append((logs[i].odometer - logs[i-1].odometer) / logs[i].liter) %}
+        {% endif %}
+      {% endfor %}
+      {{ (efficiencies|sum / efficiencies|length)|round(2) if efficiencies else 0 }} km/L
+    </p>
+  </div>
+
+  <div class="card">
+    <h3>Average Price per Liter (DKK)</h3>
+    <p>
+      {% if logs|length > 0 %}
+      {{
+      (logs|sum(attribute='total_cost') / logs|sum(attribute='liter'))|round(2)
+      }}
+      {% else %}N/A{% endif %}
+    </p>
+  </div>
+
+  <div class="card">
+    <h3>Total Kilometers Covered</h3>
+    <p>
+      {% if logs|length > 1 %}
+      {{ (logs[-1].odometer - logs[0].odometer) }} km
+      {% else %}0 km{% endif %}
+    </p>
+  </div>
+
+  <!-- Fuel Log Table Card -->
+  <div class="card" style="grid-column: span 2;">
+    <h3>Fuel Log Table</h3>
+      <table>
+        <tr>
+          <th>Date</th>
+          <th>Odometer</th>
+          <th>Liters</th>
+          <th>Price Per Liter</th>
+          <th>Total Cost</th>
+          <th>Fuel Tank Full?</th>
+          <th>Notes</th>
+          <th>Actions</th>
+        </tr>
+        {% for log in logs %}
+        <tr>
+          <td>{{ log.date }}</td>
+          <td>{{ log.odometer }}</td>
+          <td>{{ log.liter }}</td>
+          <td>{{ log.price_per_liter }}</td>
+          <td>{{ log.total_cost }}</td>
+          <td>{{ 'Yes' if log.full_tank else 'No' }}</td>
+          <td>{{ log.notes }}</td>
+          <td>
+              <form method="POST" action="{{ url_for('delete_fuel_log', log_id=log.id) }}" style="display:inline;">
+                  <button type="submit" onclick="return confirm('Are you sure you want to delete this entry?');">Delete</button>
+              </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+  </div>
+
+  <!-- Fuel Efficiency Chart -->
+  <div class="card">
+    <h3>Fuel Efficiency (km/L)</h3>
+    <canvas id="efficiencyChart"></canvas>
+  </div>
+
+  <!-- Total Cost Card -->
+    <div class="card">
+    <h3>Total Cost Over Time</h3>
+    <canvas id="costChart"></canvas>
+  </div>
+
+  <!-- Liters Per Fill Card -->
+  <div class="card">
+    <h3>Liters Per Fill</h3>
+    <canvas id="litersChart"></canvas>
+  </div>
+
+  <!-- Average Price Per Liter Card -->
+  <div class="card">
+    <h3>Average Price Per Liter</h3>
+    <canvas id="priceChart"></canvas>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const labels = [{% for log in logs[1:] %}"{{ log.date }}",{% endfor %}];
+
+// Fuel Efficiency Chart
+const efficiencyData = [
+  {% for i in range(1, logs|length) %}
+    {% if i > 0 and logs[i].liter %}
+      {{ (logs[i].odometer -logs[i-1].odometer) / logs[i].liter}},
+    {% else %}
+      0,
+    {% endif %}
   {% endfor %}
-</table>
+];
+new Chart(document.getElementById('efficiencyChart'), {
+  type: 'line',
+  data: { labels, datasets: [{ label: 'km/L', data: efficiencyData, borderColor: 'rgba(75, 192, 192, 1)', borderWidth: 2, fill: false }] },
+  options: { responsive: true }
+});
+
+// Total Cost Over Time Chart
+const costData = [{% for log in logs[1:] %}{{ log.total_cost }},{% endfor %}];
+new Chart(document.getElementById('costChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Total Cost (DKK)', data: costData, backgroundColor: 'rgba(255, 159, 64, 0.6)', borderColor: 'rgba(255, 159, 64, 1)', borderWidth: 1 }] },
+    options: { responsive: true }
+});
+
+// Liters Per Fill
+const litersData = [{% for log in logs[1:] %}{{ log.liter }},{% endfor %}];
+new Chart(document.getElementById('litersChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Liters', data: litersData, backgroundColor: 'rgba(54, 162, 235, 0.6)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1 }] },
+    options: { responsive: true }
+});
+
+// Average Price Per Liter
+const priceData = [{% for log in logs[1:] %}{{ log.price_per_liter }},{% endfor %}];
+new Chart(document.getElementById('priceChart'), {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Price per Liter (DKK)', data: priceData, borderColor: 'rgba(153, 102, 255, 1)', borderWidth: 2, fill: false }] },
+    options: { responsive: true }
+});
+</script>
+
 {% else %}
 <p>No fuel logs found yet.</p>
-{% endif %} {% endblock %}
+{% endif %} 
+
+
+
+{% endblock %}
