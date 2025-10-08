@@ -128,7 +128,8 @@ def fuel_logs(vehicle_id):
 
 @app.route('/vehicles/<int:vehicle_id>/fuel/add', methods=['GET', 'POST'])
 def add_fuel_log(vehicle_id):
-    vehicle = Vehicle.query.get_or_404(vehicle_id)
+    all_vehicles = Vehicle.query.all()
+    #vehicle = Vehicle.query.get_or_404(vehicle_id)
     if request.method == 'POST':
         date_str = request.form.get('date')  # e.g., '2024-10-06'
         date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
@@ -140,7 +141,7 @@ def add_fuel_log(vehicle_id):
         notes = request.form.get('notes')
         
         new_log = FuelLog(
-            vehicle_id=vehicle.id,
+            vehicle_id=int(request.form.get('vehicle_id')),
             date = date_obj,
             odometer=odometer,
             liter=liter,
@@ -153,7 +154,7 @@ def add_fuel_log(vehicle_id):
         db.session.commit()
         return redirect(url_for('fuel_logs', vehicle_id=vehicle.id))
     
-    return render_template('add_fuel_log.html', vehicle=vehicle)
+    return render_template('add_fuel_log.html', vehicles=all_vehicles)
         
 
 

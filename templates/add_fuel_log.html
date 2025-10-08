@@ -1,6 +1,16 @@
 {% extends "base.html" %} {% block content %}
-<h2>Add Fuel Log for {{ vehicle.make }} {{ vehicle.model }}</h2>
+<h2>Add Fuel Log</h2>
 <form method="POST">
+  <label>Vehicle:</label><br />
+  <select name="vehicle_id" required>
+    <option value="">-- Select Vehicle --</option>
+    {% for vehicle in vehicles %}
+    <option value="{{ vehicle.id }}">
+      {{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.nickname }})
+    </option>
+    {% endfor %}</select
+  ><br /><br />
+
   <label>Date:</label><br />
   <input type="date" name="date" required /><br /><br />
 
