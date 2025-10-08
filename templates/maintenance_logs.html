@@ -1,48 +1,188 @@
+<!-- templates/maintenance_logs.html -->
 {% extends "base.html" %} {% block content %}
 <h2>
   Maintenance Logs for {{ vehicle.make }} {{ vehicle.model }} ({{
   vehicle.nickname }})
 </h2>
-<form method="GET" action="{{ url_for('maintenance_logs', vehicle_id=vehicle.id) }}">
-    <label>Switch Vehicle:</label>
-    <select onchange="location = '/vehicles/' + this.value + '/maintenance_logs'">
-        {% for v in all_vehicles %}
-            <option value="{{ v.id }}" {% if v.id == vehicle.id %}selected{% endif %}>
-                {{ v.make }} {{ v.model }} ({{ v.nickname }})
-            </option>
-        {% endfor %}
-    </select>
-</form>
 
-<a href="{{ url_for('add_service') }}"
-  >Add Service Log</a
->
+<div class="dashboard">
+  <!-- Vehicle Switch Card -->
+  <div class="card">
+    <h3>Switch Vehicle</h3>
+      <form method="GET" action="{{ url_for('maintenance_logs', vehicle_id=vehicle.id) }}">
+          <label>Switch Vehicle:</label>
+          <select onchange="location = '/vehicles/' + this.value + '/maintenance_logs'">
+              {% for v in all_vehicles %}
+                  <option value="{{ v.id }}" {% if v.id == vehicle.id %}selected{% endif %}>
+                      {{ v.make }} {{ v.model }} ({{ v.nickname }})
+                  </option>
+              {% endfor %}
+          </select>
+      </form>
+  </div>
+
+  <!-- Add Service card -->
+  <div class="card">
+    <h3>Add Maintenance Entry</h3>
+    <a href="{{ url_for('add_service') }}">Add Service Log</a>
+  </div>
+</div> <!-- remove if you want to have them all as cards-->
+
+<div class="dashboard">
+    <!-- Summary Cards -->
+    <div class="card">
+        <h3>Total Maintenance Cost</h3>
+        <p>{{ logs | sum(attribute='cost') }} DKK</p>
+    </div>
+
+    <div class="card">
+        <h3>Number of Services</h3>
+        <p>{{ logs|length }}</p>
+    </div>
+
+    <div class="card">
+        <h3>Average Cost Per Service</h3>
+        <p>
+            {% if logs|length > 0 %}
+                {{ (logs | sum(attribute='cost') / logs|length) | round(2) }} DKK
+            {% else %}
+                0 DKK
+            {% endif %}
+        </p>
+    </div>
+
+    <div class="card">
+        <h3>Last Service Date</h3>
+        <p>
+            {% if logs|length > 0 %}
+                {% set sorted_logs = logs|sort(attribute='date') %}
+                {% if sorted_logs %}
+                    {{ sorted_logs[-1].date }}
+                {% else %}
+                    N/A
+                {% endif %}
+            {% else %}
+                N/A
+            {% endif %}
+        </p>
+    </div>
+</div>
 
 {% if logs %}
-<table>
-  <tr>
-    <th>Date</th>
-    <th>Odometer</th>
-    <th>Service Type</th>
-    <th>Cost</th>
-    <th>Notes</th>
-    <th>Actions</th>
-  </tr>
-  {% for log in logs %}
-  <tr>
-    <td>{{ log.date }}</td>
-    <td>{{ log.odometer }}</td>
-    <td>{{ log.service_type }}</td>
-    <td>{{ log.cost }}</td>
-    <td>{{ log.notes }}</td>
-    <td>
-        <form method="POST" action="{{ url_for('delete_maintenance', log_id=log.id) }}" style="display:inline;">
-            <button type="submit" onclick="return confirm('Are you sure you want to delete this entry?');">Delete</button>
-        </form>
-    </td>
-  </tr>
-  {% endfor %}
-</table>
+<div class="dashboard"> <!-- remove if you want to have them all as cards-->
+  <!-- Maintenance Table Card -->
+  <div class="card" style="grid-column: span 3;">
+    <h3>Maintenance Logs Table</h3>
+      <table>
+        <tr>
+          <th>Date</th>
+          <th>Odometer</th>
+          <th>Service Type</th>
+          <th>Cost</th>
+          <th>Notes</th>
+          <th>Actions</th>
+        </tr>
+        {% for log in logs %}
+        <tr>
+          <td>{{ log.date }}</td>
+          <td>{{ log.odometer }}</td>
+          <td>{{ log.service_type }}</td>
+          <td>{{ log.cost }}</td>
+          <td>{{ log.notes }}</td>
+          <td>
+              <form method="POST" action="{{ url_for('delete_maintenance', log_id=log.id) }}" style="display:inline;">
+                  <button type="submit" onclick="return confirm('Are you sure you want to delete this entry?');">Delete</button>
+              </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+
+    <!-- Total Cost Over Time -->
+    <div class="card">
+      <h3>Total Maintenance</h3>
+      <canvas id="costChart"></canvas>
+    </div>
+
+    <!-- Maintenance Frequency -->
+    <div class="card">
+      <h3>Maintenance Frequency</h3>
+      <canvas id="frequencyChart"></canvas>
+    </div>
+
+    <!-- Most Common Service Types -->
+    <div class="card">
+      <h3>Most Common Service Types</h3>
+      <canvas id="serviceChart"></canvas>
+    </div>
+
+    <!-- Average Cost Per Service -->
+    <div class="card">
+      <h3>Average Cost Per Service</h3>
+      <canvas id="averageCostChart"></canvas>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const labels = [{% for log in logs %}"{{ log.date }}",{% endfor %}];
+
+// Total Cost Over Time Chart
+const costData = [{% for log in logs %}{{ log.cost }},{% endfor %}];
+new Chart(document.getElementById('costChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Total Cost (DKK)', data: costData, backgroundColor: 'rgba(255, 99, 132, 0.6)', borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1 }] },
+    options: { responsive: true }
+});
+
+// Maintenance Frequency (number of services over time) Chart
+const freqData = [{% for log in logs %}1,{% endfor %}];
+new Chart(document.getElementById('frequencyChart'), {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Services', data: freqData, borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 2, fill: false }] },
+    options: { responsive: true }
+});
+
+// Most Common Service Types Chart
+const serviceCounts = {};
+{% for log in logs %}
+    serviceCounts["{{ log.service_type }}"] = (serviceCounts["{{ log.service_type }}"] || 0) + 1;
+{% endfor %}
+const serviceLabels = Object.keys(serviceCounts);
+const serviceData = Object.values(serviceCounts);
+new Chart(document.getElementById('serviceChart'), {
+    type: 'doughnut',
+    data: { labels: serviceLabels, datasets: [{ label: 'Service Count', data: serviceData, backgroundColor: ['rgba(255, 159, 64, 0.6)', 'rgba(75, 192, 192, 0.6)', 'rgba(153, 102, 255, 0.6)'], borderWidth: 1 }] },
+    options: { responsive: true }
+});
+
+// Average Cost Per Service
+{% set service_types = logs|map(attribute='service_type')|unique|list %}
+const avgCostLabels = [{% for s in service_types %}"{{ s }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+const avgCostData = [{% for s in service_types %}
+    {% set relevant = logs|selectattr('service_type','equalto',s)|list %}
+    {% set total = relevant|sum(attribute='cost') %}
+    {% set count = relevant|length %}
+    {{ (total/count)|round(2) }}{% if not loop.last %}, {% endif %}
+{% endfor %}];
+
+new Chart(document.getElementById('averageCostChart'), {
+    type: 'bar',
+    data: {
+        labels: avgCostLabels,
+        datasets: [{
+            label: 'Avg Cost (DKK)',
+            data: avgCostData,
+            backgroundColor: 'rgba(255, 206, 86, 0.6)',
+            borderColor: 'rgba(255, 206, 86, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: { responsive: true }
+});
+</script>
+
 {% else %}
 <p>No maintenance logs found.</p>
 {% endif %} {% endblock %}
