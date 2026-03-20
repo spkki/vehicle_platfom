@@ -215,19 +215,12 @@
     Chart.defaults.color = chartDefaults.color;
     Chart.defaults.borderColor = chartDefaults.borderColor;
 
-    const dates = {{ logs|map(attribute='date')|list|tojson }};
-    const formattedDates = dates.map(d => {
-        if (typeof d === 'string') {
-            return d.slice(0, 10);
-        } else if (d instanceof Date) {
-            return d.toISOString().slice(0, 10);
-        }
-        return d;
-    });
-    const costs = {{ logs|map(attribute='total_cost')|list|tojson }};
-    const liters = {{ logs|map(attribute='liter')|list|tojson }};
-    const odometers = {{ logs|map(attribute='odometer')|list|tojson }};
-    const prices = {{ logs|map(attribute='price_per_liter')|list|tojson }};
+    const logsJson = {{ logs_json|tojson }};
+    const dates = logsJson.map(l => l.date);
+    const costs = logsJson.map(l => l.total_cost);
+    const liters = logsJson.map(l => l.liter);
+    const odometers = logsJson.map(l => l.odometer);
+    const prices = logsJson.map(l => l.price_per_liter);
 
     // Calculate efficiency (km/L) between consecutive fills
     const effDates = [];
@@ -236,7 +229,7 @@
     for (let i = 1; i < odometers.length; i++) {
         const dist = odometers[i] - odometers[i - 1];
         distValues.push(dist);
-        effDates.push(formattedDates[i]);
+        effDates.push(dates[i]);
         effValues.push(liters[i] > 0 ? (dist / liters[i]).toFixed(2) : 0);
     }
 
@@ -274,6 +267,42 @@
     };
     const sharedBarOpts = { ...sharedLineOpts };
 
+    // Chart options copied from maintenance_logs.html
+    const chartOptions = {
+        responsive: true,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    title: function(items) {
+                        const date = new Date(items[0].label);
+                        return date.toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: { display: false },
+                ticks: {
+                    callback: function(value, index, ticks) {
+                        const date = new Date(this.getLabelForValue(value));
+                        return date.toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                        });
+                    }
+                }
+            },
+            y: { beginAtZero: true }
+        }
+    };
+
     // Fuel Efficiency Chart
     new Chart(document.getElementById('efficiencyChart'), {
         type: 'line',
@@ -287,14 +316,14 @@
                 fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#20c997'
             }]
         },
-        options: sharedLineOpts
+        options: chartOptions
     });
 
     // Price Per Liter Chart
     new Chart(document.getElementById('priceChart'), {
         type: 'line',
         data: {
-            labels: formattedDates,
+            labels: dates,
             datasets: [{
                 label: 'DKK/L',
                 data: prices,
@@ -303,14 +332,14 @@
                 fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#ffc107'
             }]
         },
-        options: sharedLineOpts
+        options: chartOptions
     });
 
     // Cost Per Fill Chart
     new Chart(document.getElementById('costChart'), {
         type: 'bar',
         data: {
-            labels: formattedDates,
+            labels: dates,
             datasets: [{
                 label: 'Cost (DKK)',
                 data: costs,
@@ -318,14 +347,14 @@
                 borderRadius: 6, borderSkipped: false
             }]
         },
-        options: sharedBarOpts
+        options: chartOptions
     });
 
     // Liters Chart
     new Chart(document.getElementById('litersChart'), {
         type: 'bar',
         data: {
-            labels: formattedDates,
+            labels: dates,
             datasets: [{
                 label: 'Liters',
                 data: liters,
@@ -333,14 +362,14 @@
                 borderRadius: 6, borderSkipped: false
             }]
         },
-        options: sharedBarOpts
+        options: chartOptions
     });
 
     // Cumulative Cost Chart
     new Chart(document.getElementById('cumulativeCostChart'), {
         type: 'line',
         data: {
-            labels: formattedDates,
+            labels: dates,
             datasets: [{
                 label: 'Cumulative Cost (DKK)',
                 data: cumulativeCosts,
@@ -349,7 +378,7 @@
                 fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#e83e8c'
             }]
         },
-        options: sharedLineOpts
+        options: chartOptions
     });
 
     // Distance Between Fills Chart
@@ -364,7 +393,7 @@
                 borderRadius: 6, borderSkipped: false
             }]
         },
-        options: sharedBarOpts
+        options: chartOptions
     });
 </script>
 {% endif %}
