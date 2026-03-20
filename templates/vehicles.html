@@ -1,40 +1,56 @@
-<!-- templates/vehicles.html -->
-{% extends "base.html" %} {% block content %}
-<h2>All Vehicles</h2>
-{% if vehicles%}
-<table>
-  <tr>
-    <th>ID</th>
-    <th>Make</th>
-    <th>Model</th>
-    <th>Year</th>
-    <th>Nickname</th>
-    <th>Notes</th>
-    <th>Actions</th>
-  </tr>
-  {% for vehicle in vehicles %}
-  <tr>
-    <td>{{ vehicle.id}}</td>
-    <td>{{ vehicle.make}}</td>
-    <td>{{ vehicle.model}}</td>
-    <td>{{ vehicle.year}}</td>
-    <td>{{ vehicle.nickname}}</td>
-    <td>{{ vehicle.notes}}</td>
-    <td>
-      <a href="{{ url_for('fuel_logs', vehicle_id=vehicle.id)}}">Fuel Logs</a>
-      <a href="{{ url_for('maintenance_logs', vehicle_id=vehicle.id)}}"
-        >Maintenance</a
-      >
-      <a href="{{ url_for('add_fuel_log', vehicle_id=vehicle.id)}}"
-        >Add Fuel Log</a
-      >
-      <a href="{{ url_for('add_service', vehicle_id=vehicle.id)}}"
-        >Add Service</a
-      >
-    </td>
-  </tr>
-  {% endfor %}
-</table>
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h2><i class="bi bi-car-front me-2"></i>My Vehicles</h2>
+    <a href="{{ url_for('add_vehicle') }}" class="btn btn-accent">
+        <i class="bi bi-plus-lg me-1"></i>Add Vehicle
+    </a>
+</div>
+
+{% if vehicles %}
+<div class="row g-4">
+    {% for vehicle in vehicles %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card vehicle-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <div class="vehicle-name">{{ vehicle.make }} {{ vehicle.model }}</div>
+                        <div class="vehicle-year">{{ vehicle.year }}{% if vehicle.nickname %} · {{ vehicle.nickname }}{% endif %}</div>
+                    </div>
+                    <span class="badge bg-primary bg-opacity-25 text-primary">#{{ vehicle.id }}</span>
+                </div>
+                {% if vehicle.notes %}
+                    <p class="small text-white-50 mb-3">{{ vehicle.notes }}</p>
+                {% endif %}
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ url_for('fuel_logs', vehicle_id=vehicle.id) }}" class="btn btn-sm btn-outline-info">
+                        <i class="bi bi-fuel-pump me-1"></i>Fuel Logs
+                    </a>
+                    <a href="{{ url_for('maintenance_logs', vehicle_id=vehicle.id) }}" class="btn btn-sm btn-outline-warning">
+                        <i class="bi bi-wrench me-1"></i>Maintenance
+                    </a>
+                    <a href="{{ url_for('add_fuel_log', vehicle_id=vehicle.id) }}" class="btn btn-sm btn-outline-success">
+                        <i class="bi bi-plus me-1"></i>Fuel
+                    </a>
+                    <a href="{{ url_for('add_service') }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-plus me-1"></i>Service
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
 {% else %}
-<p>No vehicles found.</p>
-{% endif %} {% endblock%}
+<div class="text-center py-5">
+    <i class="bi bi-car-front display-1 text-white-50"></i>
+    <p class="text-white-50 mt-3">No vehicles yet. Add your first vehicle to get started!</p>
+    <a href="{{ url_for('add_vehicle') }}" class="btn btn-accent mt-2">
+        <i class="bi bi-plus-lg me-1"></i>Add Vehicle
+    </a>
+</div>
+{% endif %}
+
+{% endblock %}

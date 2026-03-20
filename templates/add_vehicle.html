@@ -1,22 +1,42 @@
-<!-- templates/add_vehicle.html -->
-{% extends "base.html" %} {% block content %}
-<h2>Add Vehicle</h2>
-<form method="POST">
-  <label>Make:</label><br />
-  <input type="text" name="make" required /><br /><br />
+{% extends "base.html" %}
+{% block content %}
 
-  <label>Model:</label><br />
-  <input type="text" name="model" required /><br /><br />
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-body p-4">
+                <h2 class="mb-4"><i class="bi bi-plus-circle me-2"></i>Add Vehicle</h2>
+                <form method="POST" action="{{ url_for('add_vehicle') }}">
+                    <div class="mb-3">
+                        <label for="make" class="form-label">Make <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="make" name="make" placeholder="e.g. Toyota" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="model" class="form-label">Model <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="model" name="model" placeholder="e.g. Corolla" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="year" class="form-label">Year <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="year" name="year" placeholder="e.g. 2022" min="1900" max="2099" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="nickname" class="form-label">Nickname</label>
+                        <input type="text" class="form-control" id="nickname" name="nickname" placeholder="e.g. Daily Driver">
+                    </div>
+                    <div class="mb-4">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Any additional notes..."></textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-accent">
+                            <i class="bi bi-check-lg me-1"></i>Add Vehicle
+                        </button>
+                        <a href="{{ url_for('vehicles') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
-  <label>Year:</label><br />
-  <input type="number" name="year" /><br /><br />
-
-  <label>Nickname:</label><br />
-  <input type="text" name="nickname" /><br /><br />
-
-  <label>Notes:</label><br />
-  <textarea name="notes"></textarea> <br /><br />
-
-  <button type="submit">Add Vehicle</button>
-</form>
 {% endblock %}

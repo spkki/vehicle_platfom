@@ -1,32 +1,51 @@
-<!-- templates/add_maintenance.html -->
-{% extends "base.html" %} {% block content %}
-<h2>Add Maintenance Record</h2>
-<form method="POST">
-  <label>Vehicle:</label><br />
-  <select name="vehicle_id" required>
-    <option value="">-- Select Vehicle --</option>
-    {% for vehicle in vehicles %}
-    <option value="{{ vehicle.id }}">
-      {{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.nickname }})
-    </option>
-    {% endfor %}</select
-  ><br /><br />
+{% extends "base.html" %}
+{% block content %}
 
-  <label>Date:</label><br />
-  <input type="date" name="date" required /><br /><br />
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-body p-4">
+                <h2 class="mb-4"><i class="bi bi-wrench me-2"></i>Add Maintenance Record</h2>
+                <form method="POST" action="{{ url_for('add_service') }}">
+                    <div class="mb-3">
+                        <label for="vehicle_id" class="form-label">Vehicle <span class="text-danger">*</span></label>
+                        <select class="form-select" id="vehicle_id" name="vehicle_id" required>
+                            <option value="">-- Select Vehicle --</option>
+                            {% for vehicle in vehicles %}
+                            <option value="{{ vehicle.id }}">{{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.nickname or vehicle.year }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="date" class="form-label">Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="date" name="date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="odometer" class="form-label">Odometer (km) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="odometer" name="odometer" min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="service_type" class="form-label">Service Type <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="service_type" name="service_type" placeholder="e.g. Oil Change, Brake Pads" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cost" class="form-label">Cost (DKK) <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" class="form-control" id="cost" name="cost" min="0" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Additional details..."></textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-accent">
+                            <i class="bi bi-check-lg me-1"></i>Add Service
+                        </button>
+                        <a href="{{ url_for('vehicles') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
-  <label>Odometer:</label><br />
-  <input type="number" name="odometer" required /><br /><br />
-
-  <label>Service Type:</label><br />
-  <input type="text" name="service_type" required /><br /><br />
-
-  <label>Cost:</label><br />
-  <input type="number" step="0.01" name="cost" /><br /><br />
-
-  <label>Notes:</label><br />
-  <textarea name="notes"></textarea><br /><br />
-
-  <button type="submit">Add Service</button>
-</form>
 {% endblock %}
