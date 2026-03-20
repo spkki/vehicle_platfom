@@ -202,6 +202,7 @@ def fuel_logs(vehicle_id):
 @app.route('/vehicles/<int:vehicle_id>/fuel/add', methods=['GET', 'POST'])
 def add_fuel_log(vehicle_id):
     vehicle = Vehicle.query.get_or_404(vehicle_id)
+    vehicles = Vehicle.query.all()
 
     if request.method == 'POST':
         try:
@@ -223,7 +224,7 @@ def add_fuel_log(vehicle_id):
         except Exception as e:
             flash(f'Error: {e}', 'danger')
 
-    return render_template('add_fuel_log.html', vehicle=vehicle)
+    return render_template('add_fuel_log.html', vehicle=vehicle, vehicles=vehicles)
 
 
 # ── Delete ─────────────────────────────────────────────
