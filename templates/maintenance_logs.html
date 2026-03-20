@@ -7,20 +7,26 @@
             <h2 class="mb-1">
                 <i class="bi bi-wrench me-2"></i>Maintenance Logs
             </h2>
-            <p class="text-white-50 mb-0">{{ vehicle.make }} {{ vehicle.model }}{% if vehicle.nickname %} · {{ vehicle.nickname }}{% endif %}</p>
+            <p class="text-white-50 mb-0">
+                {{ vehicle.make }} {{ vehicle.model }}
+                {% if vehicle.nickname %} · {{ vehicle.nickname }}{% endif %}
+            </p>
         </div>
         <div class="d-flex gap-2 align-items-center">
             <form class="d-flex align-items-center gap-2">
                 <label class="text-white-50 text-nowrap small">Switch:</label>
-                <select class="form-select form-select-sm" style="width: auto;" onchange="window.location.href=this.value">
+                <select class="form-select form-select-sm" style="width: auto;"
+                        onchange="window.location.href=this.value">
                     {% for v in all_vehicles %}
-                    <option value="{{ url_for('maintenance_logs', vehicle_id=v.id) }}" {% if v.id == vehicle.id %}selected{% endif %}>
+                    <option value="{{ url_for('maintenance_logs', vehicle_id=v.id) }}"
+                        {% if v.id == vehicle.id %}selected{% endif %}>
                         {{ v.make }} {{ v.model }}
                     </option>
                     {% endfor %}
                 </select>
             </form>
-            <a href="{{ url_for('add_service') }}" class="btn btn-accent btn-sm">
+            <a href="{{ url_for('add_service', vehicle_id=vehicle.id) }}"
+               class="btn btn-accent btn-sm">
                 <i class="bi bi-plus-lg me-1"></i>Add Service
             </a>
         </div>
@@ -32,7 +38,9 @@
     <div class="col-6 col-lg-3">
         <div class="stat-card">
             <div class="stat-label">Total Cost (DKK)</div>
-            <div class="stat-value">{{ logs|sum(attribute='cost')|round(0)|int }}</div>
+            <div class="stat-value">
+                {{ logs|map(attribute='cost')|select|sum|round(0)|int }}
+            </div>
         </div>
     </div>
     <div class="col-6 col-lg-3">
@@ -46,7 +54,7 @@
             <div class="stat-label">Avg Cost/Service</div>
             <div class="stat-value">
                 {% if logs|length > 0 %}
-                    {{ (logs|sum(attribute='cost') / logs|length)|round(0)|int }}
+                    {{ (logs|map(attribute='cost')|select|sum / logs|length)|round(0)|int }}
                 {% else %}0{% endif %}
             </div>
         </div>
@@ -55,16 +63,23 @@
         <div class="stat-card">
             <div class="stat-label">Last Service</div>
             <div class="stat-value" style="font-size: 1.1rem;">
-                {% if logs|length > 0 %}
-                    {% set sorted_logs = logs|sort(attribute='date') %}
-                    {{ sorted_logs[-1].date }}
-                {% else %}N/A{% endif %}
+                {% set sorted_logs = logs|sort(attribute='date') %}
+                {% if sorted_logs|length > 0 and sorted_logs[-1].date %}
+                    {% if sorted_logs[-1].date is string %}
+                        {{ sorted_logs[-1].date }}
+                    {% else %}
+                        {{ sorted_logs[-1].date.strftime('%Y-%m-%d') }}
+                    {% endif %}
+                {% else %}
+                    N/A
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
 {% if logs %}
+
 <!-- Charts -->
 <div class="row g-3 mb-4">
     <div class="col-md-6">
@@ -99,15 +114,31 @@
                 <tbody>
                     {% for log in logs %}
                     <tr>
-                        <td>{{ log.date }}</td>
+                        <td>
+                            {% if log.date %}
+                                {% if log.date is string %}
+                                    {{ log.date }}
+                                {% else %}
+                                    {{ log.date.strftime('%Y-%m-%d') }}
+                                {% endif %}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
                         <td>{{ log.odometer }} km</td>
-                        <td><span class="badge bg-warning bg-opacity-25 text-warning">{{ log.service_type }}</span></td>
+                        <td>
+                            <span class="badge bg-warning bg-opacity-25 text-warning">
+                                {{ log.service_type }}
+                            </span>
+                        </td>
                         <td class="fw-semibold">{{ log.cost }} DKK</td>
                         <td class="text-white-50 small">{{ log.notes or '—' }}</td>
                         <td>
-                            <form method="POST" action="{{ url_for('delete_maintenance', log_id=log.id) }}"
+                            <form method="POST"
+                                  action="{{ url_for('delete_maintenance', log_id=log.id) }}"
                                   onsubmit="return confirm('Delete this maintenance entry?')">
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <button type="submit"
+                                        class="btn btn-sm btn-outline-danger">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
@@ -124,7 +155,8 @@
 <div class="text-center py-5">
     <i class="bi bi-wrench display-1 text-white-50"></i>
     <p class="text-white-50 mt-3">No maintenance logs yet for this vehicle.</p>
-    <a href="{{ url_for('add_service') }}" class="btn btn-accent">
+    <a href="{{ url_for('add_service', vehicle_id=vehicle.id) }}"
+       class="btn btn-accent">
         <i class="bi bi-plus-lg me-1"></i>Add First Service
     </a>
 </div>
@@ -138,8 +170,8 @@
     Chart.defaults.color = 'rgba(255,255,255,0.5)';
     Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
 
-    // Sort logs by date for the line chart
-    const sortedLogs = {{ logs|sort(attribute='date')|list|tojson }};
+    const sortedLogs = {{ logs_json | tojson }};
+
     const dates = sortedLogs.map(l => l.date);
     const costs = sortedLogs.map(l => l.cost);
 
@@ -168,11 +200,11 @@
         }
     });
 
-    // Service type breakdown (doughnut)
     const typeMap = {};
     sortedLogs.forEach(l => {
         typeMap[l.service_type] = (typeMap[l.service_type] || 0) + l.cost;
     });
+
     const colors = ['#0d6efd', '#ffc107', '#198754', '#dc3545', '#6f42c1', '#0dcaf0', '#fd7e14'];
 
     new Chart(document.getElementById('serviceTypeChart'), {

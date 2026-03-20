@@ -147,7 +147,7 @@
 <!-- Table -->
 <div class="card">
     <div class="card-body p-0">
-        <div class="table-responsive">
+        <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
             <table class="table table-hover mb-0">
                 <thead>
                     <tr>
@@ -164,7 +164,7 @@
                 <tbody>
                     {% for log in logs %}
                     <tr>
-                        <td>{{ log.date }}</td>
+                        <td>{{ log.date.strftime('%Y-%m-%d') if log.date else '' }}</td>
                         <td>{{ log.odometer }} km</td>
                         <td>{{ log.liter }} L</td>
                         <td>{{ log.price_per_liter }} DKK</td>
@@ -216,6 +216,14 @@
     Chart.defaults.borderColor = chartDefaults.borderColor;
 
     const dates = {{ logs|map(attribute='date')|list|tojson }};
+    const formattedDates = dates.map(d => {
+        if (typeof d === 'string') {
+            return d.slice(0, 10);
+        } else if (d instanceof Date) {
+            return d.toISOString().slice(0, 10);
+        }
+        return d;
+    });
     const costs = {{ logs|map(attribute='total_cost')|list|tojson }};
     const liters = {{ logs|map(attribute='liter')|list|tojson }};
     const odometers = {{ logs|map(attribute='odometer')|list|tojson }};
@@ -228,7 +236,7 @@
     for (let i = 1; i < odometers.length; i++) {
         const dist = odometers[i] - odometers[i - 1];
         distValues.push(dist);
-        effDates.push(dates[i]);
+        effDates.push(formattedDates[i]);
         effValues.push(liters[i] > 0 ? (dist / liters[i]).toFixed(2) : 0);
     }
 
@@ -256,7 +264,13 @@
     const sharedLineOpts = {
         responsive: true,
         plugins: { legend: { display: false } },
-        scales: { x: { grid: { display: false } }, y: { beginAtZero: true } }
+        scales: {
+            x: {
+                type: 'category', // Ensures labels are treated as categories, not dates
+                grid: { display: false }
+            },
+            y: { beginAtZero: true }
+        }
     };
     const sharedBarOpts = { ...sharedLineOpts };
 
@@ -280,7 +294,7 @@
     new Chart(document.getElementById('priceChart'), {
         type: 'line',
         data: {
-            labels: dates,
+            labels: formattedDates,
             datasets: [{
                 label: 'DKK/L',
                 data: prices,
@@ -296,7 +310,7 @@
     new Chart(document.getElementById('costChart'), {
         type: 'bar',
         data: {
-            labels: dates,
+            labels: formattedDates,
             datasets: [{
                 label: 'Cost (DKK)',
                 data: costs,
@@ -311,7 +325,7 @@
     new Chart(document.getElementById('litersChart'), {
         type: 'bar',
         data: {
-            labels: dates,
+            labels: formattedDates,
             datasets: [{
                 label: 'Liters',
                 data: liters,
@@ -326,7 +340,7 @@
     new Chart(document.getElementById('cumulativeCostChart'), {
         type: 'line',
         data: {
-            labels: dates,
+            labels: formattedDates,
             datasets: [{
                 label: 'Cumulative Cost (DKK)',
                 data: cumulativeCosts,
