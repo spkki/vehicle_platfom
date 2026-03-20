@@ -28,54 +28,118 @@
 </div>
 
 {% if logs %}
-<!-- Stats Grid -->
-<div class="row g-3 mb-4">
+<!-- Stats Grid - Row 1 -->
+<div class="row g-3 mb-3">
     <div class="col-6 col-lg-3">
         <div class="stat-card">
             <div class="stat-label">Total Liters</div>
-            <div class="stat-value">{{ logs|sum(attribute='liter')|round(1) }}</div>
+            <div class="stat-value">{{ logs|sum(attribute='liter')|round(1) }} L</div>
         </div>
     </div>
     <div class="col-6 col-lg-3">
         <div class="stat-card">
-            <div class="stat-label">Total Cost (DKK)</div>
-            <div class="stat-value">{{ logs|sum(attribute='total_cost')|round(0)|int }}</div>
+            <div class="stat-label">Total Cost</div>
+            <div class="stat-value">{{ logs|sum(attribute='total_cost')|round(0)|int }} DKK</div>
         </div>
     </div>
     <div class="col-6 col-lg-3">
         <div class="stat-card">
-            <div class="stat-label">Avg Price/L (DKK)</div>
+            <div class="stat-label">Avg Price/L</div>
             <div class="stat-value">
-                {% if logs|length > 0 and logs|sum(attribute='liter') > 0 %}
-                    {{ (logs|sum(attribute='total_cost') / logs|sum(attribute='liter'))|round(2) }}
+                {% if logs|sum(attribute='liter') > 0 %}
+                    {{ (logs|sum(attribute='total_cost') / logs|sum(attribute='liter'))|round(2) }} DKK
                 {% else %}N/A{% endif %}
             </div>
         </div>
     </div>
     <div class="col-6 col-lg-3">
         <div class="stat-card">
-            <div class="stat-label">Total KM</div>
+            <div class="stat-label">Total Distance</div>
             <div class="stat-value">
                 {% if logs|length > 1 %}
-                    {{ logs[-1].odometer - logs[0].odometer }}
-                {% else %}0{% endif %}
+                    {{ logs[-1].odometer - logs[0].odometer }} km
+                {% else %}0 km{% endif %}
             </div>
         </div>
     </div>
 </div>
 
-<!-- Charts -->
+<!-- Stats Grid - Row 2 -->
 <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-label">Avg Fuel Efficiency</div>
+            <div class="stat-value" id="avgEfficiency">—</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-label">Avg Cost/Fill</div>
+            <div class="stat-value">
+                {% if logs|length > 0 %}
+                    {{ (logs|sum(attribute='total_cost') / logs|length)|round(0)|int }} DKK
+                {% else %}N/A{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-label">Total Fill-ups</div>
+            <div class="stat-value">{{ logs|length }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-label">Cost per KM</div>
+            <div class="stat-value" id="costPerKm">—</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="row g-3 mb-3">
     <div class="col-md-6">
         <div class="chart-container">
-            <h6 class="text-white-50 mb-3">Cost Over Time</h6>
+            <h6 class="text-white-50 mb-3"><i class="bi bi-graph-up me-1"></i>Fuel Efficiency Over Time (km/L)</h6>
+            <canvas id="efficiencyChart" height="220"></canvas>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="chart-container">
+            <h6 class="text-white-50 mb-3"><i class="bi bi-cash-stack me-1"></i>Price Per Liter Over Time</h6>
+            <canvas id="priceChart" height="220"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <div class="chart-container">
+            <h6 class="text-white-50 mb-3"><i class="bi bi-bar-chart me-1"></i>Cost Per Fill-up</h6>
             <canvas id="costChart" height="220"></canvas>
         </div>
     </div>
     <div class="col-md-6">
         <div class="chart-container">
-            <h6 class="text-white-50 mb-3">Liters Per Fill</h6>
+            <h6 class="text-white-50 mb-3"><i class="bi bi-droplet me-1"></i>Liters Per Fill</h6>
             <canvas id="litersChart" height="220"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 3 -->
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="chart-container">
+            <h6 class="text-white-50 mb-3"><i class="bi bi-pie-chart me-1"></i>Cumulative Cost</h6>
+            <canvas id="cumulativeCostChart" height="220"></canvas>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="chart-container">
+            <h6 class="text-white-50 mb-3"><i class="bi bi-speedometer me-1"></i>Distance Between Fills (km)</h6>
+            <canvas id="distanceChart" height="220"></canvas>
         </div>
     </div>
 </div>
@@ -154,34 +218,96 @@
     const dates = {{ logs|map(attribute='date')|list|tojson }};
     const costs = {{ logs|map(attribute='total_cost')|list|tojson }};
     const liters = {{ logs|map(attribute='liter')|list|tojson }};
+    const odometers = {{ logs|map(attribute='odometer')|list|tojson }};
+    const prices = {{ logs|map(attribute='price_per_liter')|list|tojson }};
 
-    // Cost chart
-    new Chart(document.getElementById('costChart'), {
+    // Calculate efficiency (km/L) between consecutive fills
+    const effDates = [];
+    const effValues = [];
+    const distValues = [];
+    for (let i = 1; i < odometers.length; i++) {
+        const dist = odometers[i] - odometers[i - 1];
+        distValues.push(dist);
+        effDates.push(dates[i]);
+        effValues.push(liters[i] > 0 ? (dist / liters[i]).toFixed(2) : 0);
+    }
+
+    // Avg efficiency
+    if (effValues.length > 0) {
+        const avgEff = (effValues.reduce((a, b) => a + parseFloat(b), 0) / effValues.length).toFixed(2);
+        document.getElementById('avgEfficiency').textContent = avgEff + ' km/L';
+    }
+
+    // Cost per KM
+    const totalDist = odometers.length > 1 ? odometers[odometers.length - 1] - odometers[0] : 0;
+    const totalCost = costs.reduce((a, b) => a + b, 0);
+    if (totalDist > 0) {
+        document.getElementById('costPerKm').textContent = (totalCost / totalDist).toFixed(2) + ' DKK';
+    }
+
+    // Cumulative cost
+    const cumulativeCosts = [];
+    let runningTotal = 0;
+    for (let i = 0; i < costs.length; i++) {
+        runningTotal += costs[i];
+        cumulativeCosts.push(runningTotal);
+    }
+
+    const sharedLineOpts = {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { x: { grid: { display: false } }, y: { beginAtZero: true } }
+    };
+    const sharedBarOpts = { ...sharedLineOpts };
+
+    // Fuel Efficiency Chart
+    new Chart(document.getElementById('efficiencyChart'), {
         type: 'line',
+        data: {
+            labels: effDates,
+            datasets: [{
+                label: 'km/L',
+                data: effValues,
+                borderColor: '#20c997',
+                backgroundColor: 'rgba(32,201,151,0.1)',
+                fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#20c997'
+            }]
+        },
+        options: sharedLineOpts
+    });
+
+    // Price Per Liter Chart
+    new Chart(document.getElementById('priceChart'), {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [{
+                label: 'DKK/L',
+                data: prices,
+                borderColor: '#ffc107',
+                backgroundColor: 'rgba(255,193,7,0.1)',
+                fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#ffc107'
+            }]
+        },
+        options: sharedLineOpts
+    });
+
+    // Cost Per Fill Chart
+    new Chart(document.getElementById('costChart'), {
+        type: 'bar',
         data: {
             labels: dates,
             datasets: [{
                 label: 'Cost (DKK)',
                 data: costs,
-                borderColor: '#0d6efd',
-                backgroundColor: 'rgba(13,110,253,0.1)',
-                fill: true,
-                tension: 0.3,
-                pointRadius: 4,
-                pointBackgroundColor: '#0d6efd'
+                backgroundColor: 'rgba(255,99,132,0.6)',
+                borderRadius: 6, borderSkipped: false
             }]
         },
-        options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { grid: { display: false } },
-                y: { beginAtZero: true }
-            }
-        }
+        options: sharedBarOpts
     });
 
-    // Liters chart
+    // Liters Chart
     new Chart(document.getElementById('litersChart'), {
         type: 'bar',
         data: {
@@ -190,18 +316,41 @@
                 label: 'Liters',
                 data: liters,
                 backgroundColor: 'rgba(13,110,253,0.6)',
-                borderRadius: 6,
-                borderSkipped: false
+                borderRadius: 6, borderSkipped: false
             }]
         },
-        options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { grid: { display: false } },
-                y: { beginAtZero: true }
-            }
-        }
+        options: sharedBarOpts
+    });
+
+    // Cumulative Cost Chart
+    new Chart(document.getElementById('cumulativeCostChart'), {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [{
+                label: 'Cumulative Cost (DKK)',
+                data: cumulativeCosts,
+                borderColor: '#e83e8c',
+                backgroundColor: 'rgba(232,62,140,0.1)',
+                fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#e83e8c'
+            }]
+        },
+        options: sharedLineOpts
+    });
+
+    // Distance Between Fills Chart
+    new Chart(document.getElementById('distanceChart'), {
+        type: 'bar',
+        data: {
+            labels: effDates,
+            datasets: [{
+                label: 'Distance (km)',
+                data: distValues,
+                backgroundColor: 'rgba(111,66,193,0.6)',
+                borderRadius: 6, borderSkipped: false
+            }]
+        },
+        options: sharedBarOpts
     });
 </script>
 {% endif %}
